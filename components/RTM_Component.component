@@ -1,0 +1,164 @@
+<apex:component controller="RTMController" allowDML="true">
+<apex:form id="rtmSettings">
+        <apex:outputPanel rendered="{!(!IsRtmAuthenticated)}">
+            <table style="width:100%;">
+                <tr>
+                    <td align="left" style="width:50%;veritcal-align:top;">
+                    <fieldset><legend>Step 1. Initializing RTM Authentication</legend>
+                    In order to save Salesforce tasks to RememberTheMilk.com you must authenticate and authorize this application for API access on your RTM account. The following button will send an authorization request to RememberTheMilk.com. To accept it simply log in with your RTM credentials and then come back to this window to continue.
+                    
+                    <p></p>
+                    <apex:commandButton id="initRtmAuth" value="Init Authentication" title="Navigate to RTM for authentication" onclick="javascript:InitRtmAuth();return false;" />
+                    </fieldset>
+                    </td>
+                    
+                    <td align="left" style="width:50%;vertical-align:top;">
+                    <fieldset><legend>Step 2. Completing RTM Authentication</legend>
+                    After your RTM account has been configured for API access from this Salesforce organization in Step 1 we are ready to continue. Please click on the button below:
+                    <p></p>
+                    <apex:commandButton id="continueRtmAuth" action="{!ContinueRtmAuth}" value="Continue"/>
+                    </fieldset>
+                    </td>
+                	
+                </tr>
+            </table>
+                        
+            <apex:outputText style="visibility:hidden;">
+                <script type='text/javascript'>
+                    var initRtmButton = null;
+                    var continueRtmAuthButton = null;
+                    
+                    window.onload = InitRtmAuthButtons;
+                    
+                    function InitRtmAuthButtons()
+                    {
+                        initRtmButton = document.getElementById('{!$Component.initRtmAuth}');
+                        continueRtmAuthButton = document.getElementById('{!$Component.continueRtmAuth}');
+                        
+                        if(continueRtmAuthButton != null)
+                        {
+                            continueRtmAuthButton.disabled = true;
+                        }            
+                    }
+                    
+                    function InitRtmAuth()
+                    {
+                        var rtmWindow = openIntegration('{!RTMAuthServicePath}', 'height=600,width=800,location=no,resizable=yes,toolbar=no,status=no,menubar=no,scrollbars=1', 1);
+                        
+                        if(continueRtmAuthButton != null)
+                        {
+                            continueRtmAuthButton.disabled = false;
+                        }
+                    }
+                </script>
+            </apex:outputText>
+        </apex:outputPanel>
+            
+        <apex:outputPanel rendered="{!IsRtmAuthenticated}">
+            	<h1>Welcome to the KAPTL SF-RTM Sync Tool Settings Page.</h1>
+            	<p></p>
+            	<font color="green">Congratulations! Your RememberTheMilk.com account has been successfully configured to allow the KAPTL SF-RTM Sync Tool to synchronize your SF tasks to RTM.</font>
+            	<p></p>
+            	<fieldset><legend>Destination RTM Task List</legend>
+            	Please select the RTM task list to sync with this Salesforce account from the following list:
+            <div>
+                <apex:dataTable value="{!RTMLists}" var="item">
+                    <apex:column >
+                        <input type="radio" id="rtmListId" name="rtmListId" value="{!item.Id}" />
+                        <apex:outputText value="{!item.Name}" />
+                    </apex:column>
+                </apex:dataTable>            
+            </div>
+            <script type="text/javascript">
+                window.onload = SetDefaultList;
+                
+                function SetDefaultList()
+                {
+                    var rtmList = document.getElementsByName('rtmListId');
+                    var currentRtmListId = '{!RTMListId}';
+
+                    if(rtmList != null)
+                    {
+                        if(currentRtmListId != null && currentRtmListId.length > 0)
+                        {
+                            var rtmListLength = rtmList.length;
+                            for(var counter = 0; counter < rtmListLength; counter++)
+                            {
+                                if(rtmList[counter].value == currentRtmListId)
+                                {
+                                    rtmList[counter].checked = true;
+                                    return;
+                                }
+                            }
+                        }
+                        rtmList[0].checked = true;
+                    }
+                }
+            </script>
+            <p></p>
+            <div id="newRtmListPanel">
+            	
+            	... or create a new RTM task list and use it to sync with tasks for this account:
+              
+                <table>
+                    <tr>
+                        <td>
+                            <input type='text' name="newRtmListName" id="newRtmListName" />
+                        </td>
+                        <td>
+                            <apex:commandButton action="{!AddRtmList}" value="Create RTM List"/>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <p></p>
+            <apex:commandButton action="{!SaveRtmSettings}" value="Save RTM Settings"/>
+            </fieldset>
+            
+            <p></p>
+            <fieldset><legend>Manual Two-way Task Synchronization</legend>
+            Use the button below for replicating changes made to SF tasks in RTM back to SF. Currently this process will only update SF tasks with any status changes made in RTM (i.e. completed) which were previously imported from SF into RTM.
+            
+            <p></p>
+            <div>
+            	<apex:commandButton action="{!SyncRtmTasks}" value="Sync RTM Tasks" />
+            	<apex:inputCheckbox value="{!IsUpsertRtmTasks}" id="isUpsertRtmTasks"/>
+            	<span>upsert tasks originating in RTM to Salesforce</span>
+            </div>
+            <div>
+            	<apex:selectRadio value="{!ImportRtmTasksType}">
+            		<apex:selectOptions value="{!ImportRtmTasksTypes}" />
+            	</apex:selectRadio>
+            </div>
+            <apex:outputPanel rendered="{!IsReport}">
+            	<table>
+					<tr><td colspan="2" style="text-align: center;"><span style="font-weight: bold;">Result of the synchronization</span></td></tr>
+					<tr><td colspan="2" style="text-align: left;"><span style="color: blue;">{!WarningMessage}</span></td></tr>
+					<tr><td colspan="2" style="text-align: left;"><span style="color: red;">{!ErrorMessage}</span></td></tr>
+					<tr><td colspan="2" style="text-align: left;"><span>{!InfoMessage}</span></td></tr>
+					<tr>
+						<td style="text-align: right;"><span>Inserted Salesforce Tasks:</span></td>
+						<td style="text-align: left;">{!NewSfTasks}</td></tr>
+					<tr>
+						<td style="text-align: right;"><span>Updated Salesforce Tasks:</span></td>
+						<td style="text-align: left;">{!UpdatedSfTasks}</td>
+					</tr>
+					<tr>
+						<td style="text-align: right;"><span>Updated Rtm Tasks:</span></td>
+						<td style="text-align: left;">{!UpdatedRtmTasks}</td>
+					</tr>
+				</table>
+            </apex:outputPanel>
+            <p></p>
+            </fieldset>
+            
+            <p></p>
+            <fieldset><legend>Account Security</legend>
+            Use this button to deauthorize use of your currently authorized RTM account with this SF account. <br/><font color="red">All settings changes made on this page and previous RTM API access authorizations will be lost.</font>
+            <p></p>
+            <apex:commandButton action="{!RtmLogout}" value="Logout RTM"/>
+        	<p></p>
+        	</fieldset>	
+        </apex:outputPanel>
+</apex:form>
+</apex:component>

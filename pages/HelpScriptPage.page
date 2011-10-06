@@ -1,0 +1,5 @@
+<apex:page controller="HelpScriptPageController" >
+    <apex:form >
+<apex:commandButton value="Delete All Salesforce Tasks" action="{!DeleteAllTasks}"/>
+    </apex:form>
+</apex:page>

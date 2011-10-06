@@ -1,0 +1,25 @@
+<apex:page standardController="User" extensions="RTMTasksPageController" showHeader="false" sidebar="false">
+<head>
+    <TITLE>SF-RTM Sync Tool Settings - by KAPTL</TITLE>
+</head>
+<body> 
+<apex:pageBlock >
+    <apex:pageMessages />
+    <apex:outputPanel rendered="{!IsRTMSync}" >
+        <c:RTM_Component />
+    </apex:outputPanel>
+    <apex:outputPanel rendered="{!(!IsRTMSync)}">
+        <apex:outputText >
+            Currently RTM Sync is disabled. To enable set Sync with RTM checkbox 'true'
+        </apex:outputText>
+    </apex:outputPanel>
+</apex:pageBlock>
+    <div style="text-align:center;width:100%;">
+    <span>Powered by</span>
+    <br/>
+    <a href="http://www.kaptl.com" target="blank">
+    <apex:image alt="Kaptl.com" title="Kaptl.com" url="{!URLFOR($Resource.KaptlLogo)}"/>
+    </a>
+    </div>
+</body>
+</apex:page>
